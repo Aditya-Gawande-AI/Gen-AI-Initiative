@@ -101,7 +101,7 @@ def main():
         agent_3_output(orders[0])
     else:
         print("❌ No sales orders available for explanation")
- 
- 
+
 if __name__ == "__main__":
     main()
+ 
