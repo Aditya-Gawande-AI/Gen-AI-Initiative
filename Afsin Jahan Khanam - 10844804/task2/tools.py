@@ -5,9 +5,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def get_stock_price(symbol):
-    url = "http://api.marketstack.com/v1/eod/latest"
+    url = "xxx"
     params = {
-        "access_key": os.getenv("MARKETSTACK_API_KEY"),
+        "access_key": os.getenv("xxx"),
         "symbols": symbol
     }
 
