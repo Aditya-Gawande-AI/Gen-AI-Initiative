@@ -60,9 +60,9 @@ if collection is not None:
 # AGENT 2 -> SAP API Call
 print("\n Running Agent 2...")
  
-url = "https://172.19.151.9:44302/sap/opu/odata/sap/API_SALES_ORDER_SRV/A_SalesOrder?$top=10"
-username = "Developer"
-password = "dev@S09"
+url = "xxx"
+username = "xxx"
+password = "xxx"
  
 try:
     response = requests.get(
