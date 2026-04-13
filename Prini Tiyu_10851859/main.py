@@ -1,97 +1,55 @@
 import os
 from dotenv import load_dotenv
 
-from gen_ai_hub.proxy.langchain.init_models import init_llm
-from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_community.utilities import GoogleSerperAPIWrapper
-
-load_dotenv()
-
-if not os.getenv("SERPER_API_KEY"):
-    raise EnvironmentError("SERPER_API_KEY not found in .env file")
-
-print("Environment variables loaded successfully")
-
-print("Initializing LLM via SAP Generative AI Hub...")
-
-llm = init_llm(
-    "gpt-4o",
-    temperature=0.3
-)
-
-print("LLM initialized\n")
-
-# Agent 1
-def agent_1_company_info(company_name: str) -> str:
-    try:
-        messages = [
-            SystemMessage(content="You are a business analyst."),
-            HumanMessage(
-                content=f"Give an overview, industry, and core business of {company_name}."
-            )
-        ]
-        
-        response = llm.invoke(messages)
-        return response.content
+from agents.agent1_gmail import fetch_latest_image_attachment
+from agents.agent2_serial import extract_serial_from_image_bytes
+from agents.agent3_sap_so import create_sales_order
 
 
-    except Exception as e:
-        return f" Agent 1 failed: {e}"
+def main():
+    load_dotenv()
 
-# Agent 2: Stock Price Agent (Google Serper)
-def agent_2_stock_price(company_name: str) -> str:
-    try:
-        search = GoogleSerperAPIWrapper(
-            serper_api_key=os.getenv("SERPER_API_KEY")
-        )
-        query = f"{company_name} stock price today"
-        result = search.run(query)
-        return result
+    print("\n" + "="*60)
+    print(" AGENTIC AI TASK 3 - EXECUTION STARTED")
+    print("="*60)
 
-    except Exception as e:
-        return f" Agent 2 failed: {e}"
+    # ===== Agent 1 =====
+    print("\n Agent 1: Reading Gmail & fetching attachment...")
+    query = os.getenv("GMAIL_QUERY", "in:anywhere has:attachment")
+    filename, image_bytes, msg_id = fetch_latest_image_attachment(query)
+    print(f" Attachment fetched successfully")
+    print(f"    File Name   : {filename}")
+    print(f"    Message ID : {msg_id}")
 
-# Agent 3: Final Report Agent
-def agent_3_final_report(company_name: str, company_info: str, stock_info: str) -> str:
-    try:
-        messages = [
-            SystemMessage(content="You are a financial analyst."),
-            HumanMessage(
-                content=f"""
-Company Name: {company_name}
+    # ===== Agent 2 =====
+    print("\n Agent 2: Extracting Serial Number from image using LLM...")
+    serial = extract_serial_from_image_bytes(image_bytes, filename=filename)
 
-Company Information:
-{company_info}
+    if not serial.strip():
+        raise RuntimeError(" Agent 2 failed to extract serial number.")
 
-Stock Market Information:
-{stock_info}
+    print(f" Serial Number extracted")
+    print(f"    Serial Number : {serial}")
 
-Generate a professional, concise summary combining business and stock insights.
-"""
-            )
-        ]
-        response = llm.invoke(messages)
-        return response.content
+    # ===== Agent 3 =====
+    print("\n Agent 3: Creating Sales Order in SAP...")
+    result = create_sales_order(serial)
 
-    except Exception as e:
-        return f" Agent 3 failed: {e}"
+    sales_order = result.get("d", {}).get("SalesOrder", "UNKNOWN")
 
-# MAIN EXECUTION
+    print(f" Sales Order created successfully in SAP")
+    print(f"    Sales Order No             : {sales_order}")
+    print(f"    PurchaseOrderByCustomer    : {serial}")
+
+    # ===== Final Summary =====
+    print("\n" + "="*60)
+    print(" TASK COMPLETED SUCCESSFULLY ")
+    print("="*60)
+    print(f" Gmail Attachment   : {filename}")
+    print(f" Extracted Serial   : {serial}")
+    print(f" SAP Sales Order    : {sales_order}")
+    print("="*60 + "\n")
+
+
 if __name__ == "__main__":
-    print("    TASK-2 : AGENTIC AI     ")
-   
-    company_name = input("Enter company name: ").strip()
-
-    print("\n Agent 1: Company Information ")
-    company_info = agent_1_company_info(company_name)
-    print(company_info)
-
-    print("\n Agent 2: Stock Price ")
-    stock_info = agent_2_stock_price(company_name)
-    print(stock_info)
-
-    print("\n Agent 3: Final Report ")
-    final_report = agent_3_final_report(company_name, company_info, stock_info)
-    print(final_report)
-
-    print("\n Task-2 execution completed successfully")
+    main()
